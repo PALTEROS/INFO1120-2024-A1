@@ -18,4 +18,4 @@ def generar_chiste():
 if __name__ == "__main__":
     print(generar_chiste())
 
-e="e"
+e="e,2"
