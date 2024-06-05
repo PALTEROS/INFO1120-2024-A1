@@ -1,6 +1,7 @@
 import sqlite3
 import pandas as pd
 
+
 conn = sqlite3.connect('Sql_data/db_personas.db')
 cursor= conn.cursor()
 
@@ -15,7 +16,11 @@ rows = cursor.fetchall()
 for row in rows:
     print(row)
 
-df= pd.read_sql_query(cosulta,conn)
-print(df)
+DataFrame= pd.read_sql_query(cosulta,conn)
+print(DataFrame)
+
+filtro = int(input('Que tipo de Busqueda deseas realizar: '))
+print('1. Busqueda singular (1 persona)')
+print('2. Busuqeda por grupos (Varias personas)')
 
 conn.close()
