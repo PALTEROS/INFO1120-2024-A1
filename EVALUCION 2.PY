@@ -6,34 +6,46 @@ import pandas as pd
 conn = sqlite3.connect('Sql_data/db_personas.db')
 cursor= conn.cursor()
 
-  
-fig = plt.figure(figsize = (10, 10))
- 
-grafico ="""
+graficoa ="""
 SELECT personas.profesion as profesion,AVG(Salarios.Sueldo) as sueldo_promedio
 from personas
 INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios
 GROUP BY profesion
 """
-
-consulta = """
-SELECT * 
+graficob="""
+SELECT personas.profesion as profesion,
+round(COUNT(rut) * 100 / (SELECT COUNT(profesion) FROM personas)) AS porcentaje
 from personas
-INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios
-
-
+GROUP BY profesion
 """
-cursor.execute(consulta)
+  
+graficoc="""
+SELECT personas.nacionalidad as nacionalidad,count(personas.rut) as numero_de_profesionales
+from personas
+GROUP BY nacionalidad
+"""
 
-df= pd.read_sql_query(consulta,conn)
-print(df)
 
 
-data = pd.read_sql(grafico, conn)
+plt.subplots()
+data = pd.read_sql(graficoa, conn)
 plt.bar(data.profesion,data.sueldo_promedio)
 plt.title("sueldo promedio por profesion")
 plt.xticks(rotation=45)
 plt.subplots_adjust(bottom=0.35)
+
+
+plt.subplots()
+data = pd.read_sql(graficob, conn)
+plt.pie(data.porcentaje,labels=data.profesion, autopct='%1.1f%%')
+plt.title("distribuicion de profesiones")
+
+plt.subplots()
+data = pd.read_sql(graficoc, conn)
+plt.bar(data.nacionalidad,data.numero_de_profesionales)
+plt.title("conteo de profesionales por nacionalidad")
+plt.xticks(rotation=45)
+
 plt.show()
 
 conn.close()
