@@ -13,9 +13,6 @@ INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios
 cursor.execute(cosulta)
 rows = cursor.fetchall()
 
-for row in rows:
-    print(row)
-
 DataFrame= pd.read_sql_query(cosulta,conn)
 print(DataFrame)
 
