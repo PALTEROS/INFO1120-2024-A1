@@ -13,7 +13,7 @@ grafico ="""
 SELECT personas.profesion as profesion,AVG(Salarios.Sueldo) as sueldo_promedio
 from personas
 INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios
-GROUP BY personas.profesion
+GROUP BY profesion
 """
 
 consulta = """
@@ -33,7 +33,7 @@ data = pd.read_sql(grafico, conn)
 plt.bar(data.profesion,data.sueldo_promedio)
 plt.title("sueldo promedio por profesion")
 plt.xticks(rotation=45)
-plt.subplots_adjust(bottom=0.34)
+plt.subplots_adjust(bottom=0.35)
 plt.show()
 
 conn.close()
