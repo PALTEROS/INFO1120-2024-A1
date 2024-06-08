@@ -1,4 +1,5 @@
 from docx import Document
+from docx.shared import Pt
 from docx.shared import Inches
 import pandas as pd
 import os
@@ -21,54 +22,65 @@ def connect_db(db_path):
         raise
     return conn
 
-def generar_contrato_con_imagenes(persona, template_path, output_path, images_path):
-    """
-    Genera un contrato en Word para una persona específica utilizando una plantilla e incluye imágenes.
-    """
-    if not os.path.exists(template_path):
-        raise FileNotFoundError(f"Archivo de plantilla no encontrado en la ruta: {template_path}")
+def example_contract(date: str, rol: str, address: str, rut: str, full_name: str, nationality: str, birth_date: str, profession: str, salary: str) -> str:
+    document = Document()
 
-    doc = Document(template_path)
-    placeholders = {
-    'NOMBRE': persona['nombre_completo'],
-    'RUT': persona['rut'],
-    'ROL': persona['Rol'],
-    'SUELDO': str(persona['Sueldo']),
-    'FECHA_INGRESO': persona['fecha_ingreso'],
-    'NACIONALIDAD': persona['nacionalidad'],
-    'PROFESION': persona['profesion'],
-    'FECHA_NACIMIENTO': persona['fecha_de_nacimiento'],
-    'DOMICILIO': persona['residencia'],  # Cambia 'domicilio' a 'residencia'
-}
+    # Configuración de parámetros del documento
+    font = document.styles['Normal'].font
+    font.name = 'Book Antiqua'
+    sections = document.sections
+    for section in sections:
+        section.page_height = Inches(11)
+        section.page_width = Inches(8.5)
+        section.top_margin = Inches(1)
+        section.bottom_margin = Inches(1)
+        section.left_margin = Inches(1)
+        section.right_margin = Inches(1)
 
-    # Reemplazo de placeholders con la información de la persona
-    for para in doc.paragraphs:
-        for placeholder, value in placeholders.items():
-            if placeholder in para.text:
-                para.text = para.text.replace(placeholder, value)
-    
-    # Inserción de imágenes específicas
-    header_section = doc.sections[0].header
+    # Encabezado del documento
+    header_section = document.sections[0].header
     header_paragraph = header_section.paragraphs[0]
     header_paragraph.text = ""
-    header_paragraph.add_run().add_picture(os.path.join(images_path, 'header.png'), width=Inches(6))
+    header_paragraph.add_run().add_picture('imagenes/header.png', width=Inches(6))
 
-    footer_section = doc.sections[0].footer
+    # Contenido del contrato
+    p = document.add_paragraph(f'En Temuco, a {str(date)}, entre la Corporación de Innovación y Desarrollo Tecnológico, Rut 78.898.766-4, representada por su Director General don(a) Roberto Gomez Bolainas, Cédula de Identidad Nº 10.678.990-2, ambos domiciliados en Caupolican 455 de esta ciudad, en adelante la “Corporación” y {full_name}, de nacionalidad {nationality}, de profesión {profession}, nacido el {birth_date}, con domicilio en {address}, Cédula de Identidad N° {rut}, en adelante, el “Prestador de Servicios”, se ha convenido el siguiente contrato de prestación de servicios a honorarios: \n')
+    font.size = Pt(8)
+    p1 = document.add_paragraph('')
+    p1.add_run('PRIMERO        :').bold = True
+    p1.add_run('En el marco del acuerdo de servicios profesionales fechado el 11 de noviembre de 2020, establecido entre la Agencia Nacional de Estándares Educativos y la Corporación de Innovación y Desarrollo Tecnológico , y ratificado según la Resolución Exenta N°603 del 23 de noviembre de 2020, la Corporación encarga los servicios profesionales del Prestador de Servicios, para que ejecute la siguiente tarea en el proyecto "Evaluación de competencias específicas y metodologías de aprendizaje artificial 2020, ID 67703-20-JJ90."')
+    p1.add_run('\n SEGUNDO        :').bold = True
+    p1.add_run('El rol a desempeñar es de ' + rol + '.')
+    p1.add_run('\n TERCERO        :').bold = True
+    p1.add_run('El plazo para la realización de la prestación de servicios encomendada será el ' + str(date))
+    p1.add_run('\n CUARTO        :').bold = True
+    p1.add_run('Por el servicio profesional efectivamente realizado, se pagará un monto bruto variable, el cual corresponderá a cada rol dentro de la empresa capacitación, de acuerdo al siguiente detalle: ')
+    table = document.add_table(rows=2, cols=2)
+    table.alignment = 1
+    hdr_cells0 = table.rows[0].cells
+    hdr_cells0[0].text = 'Rol'
+    hdr_cells0[1].text = 'Monto Bruto'
+    hdr_cells = table.rows[1].cells
+    hdr_cells[0].text = rol
+    hdr_cells[1].text = salary
+    p1.add_run('\n QUINTO        :').bold = True
+    p1.add_run('El Prestador de Servicios acepta el encargo y las condiciones precedentes.')
+    p1.add_run('\n SEXTO        :').bold = True
+    p1.add_run(
+        'El Prestador de Servicios está obligado a mantener la confidencialidad de todos los materiales utilizados, conforme al Acuerdo de Confidencialidad previamente establecido.')
+    p1.add_run('\n En comprobante, previa lectura y ratificación, las partes firman.  ').bold = True
+
+    # Pie de página
+    footer_section = document.sections[0].footer
     footer_paragraph = footer_section.paragraphs[0]
     footer_paragraph.text = ""
-    footer_paragraph.add_run().add_picture(os.path.join(images_path, 'foother.png'), width=Inches(6))
+    footer_paragraph.add_run('Caupolican 0455, Temuco, Chile, www.corpoindet.cl').bold = True
+    footer_paragraph.add_run().add_picture('imagenes/footer1.png', width=Inches(6))
 
-    for para in doc.paragraphs:
-        if 'LOGO' in para.text:
-            para.text = para.text.replace('LOGO', '')
-            para.add_run().add_picture(os.path.join(images_path, 'logo.png'), width=Inches(2))
-        if 'FIRMA' in para.text:
-            para.text = para.text.replace('FIRMA', '')
-            para.add_run().add_picture(os.path.join(images_path, 'firma.png'), width=Inches(2))
-
-    os.makedirs(output_path, exist_ok=True)
-    output_file = os.path.join(output_path, f"{persona['nombre_completo'].replace(' ', '_')}_contrato.docx")
-    doc.save(output_file)
+    # Guardar el documento
+    os.makedirs("contratos", exist_ok=True)
+    output_file = os.path.join("contratos", f"{full_name.replace(' ', '_')}_contrato.docx")
+    document.save(output_file)
     print(f"Contrato guardado como {output_file}")
 
 def busqueda_persona(conn, template_path, output_path, images_path):
@@ -87,7 +99,16 @@ def busqueda_persona(conn, template_path, output_path, images_path):
             query = "SELECT personas.*, Salarios.Rol, Salarios.Sueldo FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.rut = ?"
             res = pd.read_sql_query(query, conn, params=(rut,))
             if not res.empty:
-                generar_contrato_con_imagenes(res.iloc[0], template_path, output_path, images_path)
+                persona = res.iloc[0].to_dict()
+                example_contract(date=persona['fecha_ingreso'],
+                                 rol=persona['Rol'],
+                                 address=persona['residencia'],
+                                 rut=persona['rut'],
+                                 full_name=persona['nombre_completo'],
+                                 nationality=persona['nacionalidad'],
+                                 birth_date=persona['fecha_de_nacimiento'],
+                                 profession=persona['profesion'],
+                                 salary=str(persona['Sueldo']))
             else:
                 print("No se encontró ninguna persona con ese RUT.")
             break
@@ -96,7 +117,16 @@ def busqueda_persona(conn, template_path, output_path, images_path):
             query = "SELECT personas.*, Salarios.Rol, Salarios.Sueldo FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.nombre_completo = ?"
             res = pd.read_sql_query(query, conn, params=(nombre,))
             if not res.empty:
-                generar_contrato_con_imagenes(res.iloc[0], template_path, output_path, images_path)
+                persona = res.iloc[0].to_dict()
+                example_contract(date=persona['fecha_ingreso'],
+                                 rol=persona['Rol'],
+                                 address=persona['residencia'],
+                                 rut=persona['rut'],
+                                 full_name=persona['nombre_completo'],
+                                 nationality=persona['nacionalidad'],
+                                 birth_date=persona['fecha_de_nacimiento'],
+                                 profession=persona['profesion'],
+                                 salary=str(persona['Sueldo']))
             else:
                 print("No se encontró ninguna persona con ese nombre.")
             break
@@ -139,4 +169,3 @@ def menu():
 
 # Ejecutar menú principal
 menu()
-
