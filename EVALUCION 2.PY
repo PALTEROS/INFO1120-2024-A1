@@ -1,7 +1,8 @@
-import sqlite3
-import pandas as pd
 from docx import Document
+from docx.shared import Inches
+import pandas as pd
 import os
+import sqlite3
 
 def connect_db(db_path):
     """
@@ -13,39 +14,64 @@ def connect_db(db_path):
     else:
         print("El archivo de la base de datos no existe. Verifique la ruta.")
         raise FileNotFoundError(f"Archivo de base de datos no encontrado en la ruta: {db_path}")
-    conn = sqlite3.connect(db_path)
+    try:
+        conn = sqlite3.connect(db_path)
+    except sqlite3.Error as e:
+        print(f"Error al conectar con la base de datos: {e}")
+        raise
     return conn
 
-def generar_contrato(persona, template_path, output_path):
+def generar_contrato_con_imagenes(persona, template_path, output_path, images_path):
     """
-    Genera un contrato en Word para una persona específica utilizando una plantilla.
+    Genera un contrato en Word para una persona específica utilizando una plantilla e incluye imágenes.
     """
-    # Verificar si el archivo de plantilla existe
     if not os.path.exists(template_path):
         raise FileNotFoundError(f"Archivo de plantilla no encontrado en la ruta: {template_path}")
 
     doc = Document(template_path)
-    for para in doc.paragraphs:
-        if 'NOMBRE' in para.text:
-            para.text = para.text.replace('NOMBRE', persona['nombre_completo'])
-        if 'RUT' in para.text:
-            para.text = para.text.replace('RUT', persona['rut'])
-        if 'ROL' in para.text:
-            para.text = para.text.replace('ROL', persona['Rol'])  # Ajustado a 'Rol'
-        if 'SUELDO' in para.text:
-            para.text = para.text.replace('SUELDO', str(persona['Sueldo']))  # Ajustado a 'Sueldo'
-        if 'FECHA_INGRESO' in para.text:
-            para.text = para.text.replace('FECHA_INGRESO', persona['fecha_ingreso'])
-        if 'RESIDENCIA' in para.text:
-            para.text = para.text.replace('RESIDENCIA', persona['residencia'])
+    placeholders = {
+    'NOMBRE': persona['nombre_completo'],
+    'RUT': persona['rut'],
+    'ROL': persona['Rol'],
+    'SUELDO': str(persona['Sueldo']),
+    'FECHA_INGRESO': persona['fecha_ingreso'],
+    'NACIONALIDAD': persona['nacionalidad'],
+    'PROFESION': persona['profesion'],
+    'FECHA_NACIMIENTO': persona['fecha_de_nacimiento'],
+    'DOMICILIO': persona['residencia'],  # Cambia 'domicilio' a 'residencia'
+}
 
-    # Corregir ruta de salida, asegurarse que exista el directorio de salida
+    # Reemplazo de placeholders con la información de la persona
+    for para in doc.paragraphs:
+        for placeholder, value in placeholders.items():
+            if placeholder in para.text:
+                para.text = para.text.replace(placeholder, value)
+    
+    # Inserción de imágenes específicas
+    header_section = doc.sections[0].header
+    header_paragraph = header_section.paragraphs[0]
+    header_paragraph.text = ""
+    header_paragraph.add_run().add_picture(os.path.join(images_path, 'header.png'), width=Inches(6))
+
+    footer_section = doc.sections[0].footer
+    footer_paragraph = footer_section.paragraphs[0]
+    footer_paragraph.text = ""
+    footer_paragraph.add_run().add_picture(os.path.join(images_path, 'foother.png'), width=Inches(6))
+
+    for para in doc.paragraphs:
+        if 'LOGO' in para.text:
+            para.text = para.text.replace('LOGO', '')
+            para.add_run().add_picture(os.path.join(images_path, 'logo.png'), width=Inches(2))
+        if 'FIRMA' in para.text:
+            para.text = para.text.replace('FIRMA', '')
+            para.add_run().add_picture(os.path.join(images_path, 'firma.png'), width=Inches(2))
+
     os.makedirs(output_path, exist_ok=True)
     output_file = os.path.join(output_path, f"{persona['nombre_completo'].replace(' ', '_')}_contrato.docx")
     doc.save(output_file)
     print(f"Contrato guardado como {output_file}")
 
-def busqueda_persona(conn, template_path, output_path):
+def busqueda_persona(conn, template_path, output_path, images_path):
     while True:
         print('Desea realizar una búsqueda por:')
         print('1. RUT')
@@ -60,10 +86,8 @@ def busqueda_persona(conn, template_path, output_path):
             rut = input('Ingrese el RUT de la persona: ')
             query = "SELECT personas.*, Salarios.Rol, Salarios.Sueldo FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.rut = ?"
             res = pd.read_sql_query(query, conn, params=(rut,))
-            print(res)
-            print("Columnas del resultado:", res.columns)
             if not res.empty:
-                generar_contrato(res.iloc[0], template_path, output_path)
+                generar_contrato_con_imagenes(res.iloc[0], template_path, output_path, images_path)
             else:
                 print("No se encontró ninguna persona con ese RUT.")
             break
@@ -71,10 +95,8 @@ def busqueda_persona(conn, template_path, output_path):
             nombre = input('Ingrese el nombre completo de la persona: ')
             query = "SELECT personas.*, Salarios.Rol, Salarios.Sueldo FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.nombre_completo = ?"
             res = pd.read_sql_query(query, conn, params=(nombre,))
-            print(res)
-            print("Columnas del resultado:", res.columns)
             if not res.empty:
-                generar_contrato(res.iloc[0], template_path, output_path)
+                generar_contrato_con_imagenes(res.iloc[0], template_path, output_path, images_path)
             else:
                 print("No se encontró ninguna persona con ese nombre.")
             break
@@ -83,18 +105,12 @@ def busqueda_persona(conn, template_path, output_path):
 
 def menu():
     base_dir = os.path.dirname(os.path.abspath(__file__))  # Obtiene el directorio actual del script
-    print(f"Directorio base: {base_dir}")
     subdir_path = os.path.join(base_dir, 'Evaluación 2')
-    print(f"Directorio de subruta: {subdir_path}")
     
     db_path = os.path.join(subdir_path, 'Sql_data', 'db_personas.db')
-    print(f"Ruta del archivo de base de datos: {db_path}")
-    
     template_path = os.path.join(subdir_path, 'plantilla_word', 'template.docx')  # Ajustar según el nombre del archivo
-    print(f"Ruta del archivo de plantilla: {template_path}")
-    
     output_path = os.path.join(subdir_path, 'contrato_ejemplo')  # Directorio donde se guardarán los contratos generados
-    print(f"Ruta del directorio de salida: {output_path}")
+    images_path = os.path.join(subdir_path, 'imagenes')  # Directorio donde están las imágenes
     
     os.makedirs(output_path, exist_ok=True)
     
@@ -114,11 +130,13 @@ def menu():
             continue
 
         if filtro == 1:
-            busqueda_persona(conn, template_path, output_path)
+            busqueda_persona(conn, template_path, output_path, images_path)
             break
         else:
             print('Opción no válida, vuelva a intentar.')
     
     conn.close()
 
+# Ejecutar menú principal
 menu()
+
