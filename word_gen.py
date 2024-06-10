@@ -73,6 +73,27 @@ def example_contract(date:str, rol:str, address:str, rut:str, full_name:str, nat
     document.save(f'{full_name}.docx')
 
 
+def busqueda_persona(conn):
+    # ... (código anterior)
+
+    res = pd.read_sql_query(consulta, conn, params=(termino_busqueda,))
+
+    if res.empty:
+        print("No se encontró ninguna persona.")
+    else:
+        print(res)  # Mostrar el DataFrame completo
+        persona = res.iloc[0]
+        example_contract(
+            date=persona['fecha_ingreso'],
+            rol=persona['Rol'],
+            address=persona['residencia'],
+            rut=persona['rut'],
+            full_name=persona['nombre_completo'],
+            nationality=persona['nacionalidad'],
+            birth_date=persona['fecha_de_nacimiento'],
+            profession=persona['profesion'],
+            salary=str(persona['Sueldo'])
+        )
 
 
 

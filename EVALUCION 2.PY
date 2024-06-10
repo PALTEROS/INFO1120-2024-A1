@@ -4,22 +4,23 @@ from docx.shared import Pt, Cm, Mm
 import pandas as pd
 import sqlite3
 
-def connect_db(db_path):
-    """
-    Establece una conexión con la base de datos y la devuelve.
-    """
-    print(f"Intentando abrir la base de datos en: {db_path}")
-    if os.path.exists(db_path):
-        print("El archivo de la base de datos existe.")
-    else:
-        print("El archivo de la base de datos no existe. Verifique la ruta.")
-        raise FileNotFoundError(f"Archivo de base de datos no encontrado en la ruta: {db_path}")
-    try:
-        conn = sqlite3.connect(db_path)
-    except sqlite3.Error as e:
-        print(f"Error al conectar con la base de datos: {e}")
-        raise
-    return conn
+
+conn = sqlite3.connect('Sql_data/db_personas.db')
+cursor= conn.cursor()
+
+cosulta = """
+SELECT * 
+from personas
+INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios
+"""
+cursor.execute(cosulta)
+rows = cursor.fetchall()
+
+for row in rows:
+    print(row)
+
+DataFrame= pd.read_sql_query(cosulta,conn)
+print(DataFrame)
 
 def example_contract(date: str, rol: str, address: str, rut: str, full_name: str, nationality: str, birth_date: str, profession: str, salary: str) -> str:
     document = Document()
@@ -100,139 +101,123 @@ def example_contract(date: str, rol: str, address: str, rut: str, full_name: str
     # Guardar el documento
     document.save(f'{full_name}.docx')
 
-def busqueda_persona(conn, template_path, output_path, images_path):
+def busqueda_persona(conn):
+    """
+    Función mejorada para buscar personas por RUT o nombre completo. 
+    Maneja errores y pasa los datos correctamente a example_contract.
+    """
     while True:
-        print('Desea realizar una búsqueda por:')
-        print('1. RUT')
-        print('2. Nombre Completo')
-        try:
-            eleccion = int(input('Por favor ingrese el número de su selección: '))
-        except ValueError:
-            print("Debe ingresar un número.")
+        tipo_busqueda = input("Buscar por RUT (1) o Nombre Completo (2)? ")
+        if tipo_busqueda not in ["1", "2"]:
+            print("Opción inválida. Intente de nuevo.")
             continue
 
-        if eleccion == 1:
-            rut = input('Ingrese el RUT de la persona: ')
-            query = "SELECT personas.*, Salarios.Rol, Salarios.Sueldo FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.rut = ?"
-            res = pd.read_sql_query(query, conn, params=(rut,))
-            if not res.empty:
-                persona = res.iloc[0].to_dict()
-                example_contract(date=persona['fecha_ingreso'],
-                                 rol=persona['Rol'],
-                                 address=persona['residencia'],
-                                 rut=persona['rut'],
-                                 full_name=persona['nombre_completo'],
-                                 nationality=persona['nacionalidad'],
-                                 birth_date=persona['fecha_de_nacimiento'],
-                                 profession=persona['profesion'],
-                                 salary=str(persona['Sueldo']))
-            else:
-                print("No se encontró ninguna persona con ese RUT.")
-            break
-        elif eleccion == 2:
-            nombre = input('Ingrese el nombre completo de la persona: ')
-            query = "SELECT personas.*, Salarios.Rol, Salarios.Sueldo FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.nombre_completo = ?"
-            res = pd.read_sql_query(query, conn, params=(nombre,))
-            if not res.empty:
-                persona = res.iloc[0].to_dict()
-                example_contract(date=persona['fecha_ingreso'],
-                                 rol=persona['Rol'],
-                                 address=persona['residencia'],
-                                 rut=persona['rut'],
-                                 full_name=persona['nombre_completo'],
-                                 nationality=persona['nacionalidad'],
-                                 birth_date=persona['fecha_de_nacimiento'],
-                                 profession=persona['profesion'],
-                                 salary=str(persona['Sueldo']))
-            else:
-                print("No se encontró ninguna persona con ese nombre.")
-            break
+        termino_busqueda = input("Ingrese el término de búsqueda: ")
+        columna = "rut" if tipo_busqueda == "1" else "nombre_completo"
+        consulta = f"""
+            SELECT personas.*, Salarios.Rol, Salarios.Sueldo 
+            FROM personas 
+            INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios 
+            WHERE personas.{columna} = ?
+        """
+
+        res = pd.read_sql_query(consulta, conn, params=(termino_busqueda,))
+
+        if res.empty:
+            print("No se encontró ninguna persona.")
         else:
-            print('Opción no válida, vuelva a intentar.')
-def multiple_data_to_contract(df: pd.DataFrame, start: int, end: int):
-    """
-    Genera contratos Word para un rango de personas en un DataFrame.
-
-    Args:
-        df (pd.DataFrame): DataFrame con los datos de las personas.
-        start (int): Índice de inicio del rango (inclusivo).
-        end (int): Índice de fin del rango (exclusivo).
-    """
-    sub_df = df.iloc[start:end]  # Filtrar el DataFrame por el rango
-
-    for index, persona in sub_df.iterrows():
-        # Convertir la fila a un diccionario para pasar a example_contract
-        persona_dict = persona.to_dict()
-        # Asegurar que los valores necesarios estén presentes y sean del tipo correcto
-        try:
-            # Llamar a la función example_contract para generar cada contrato
+            print(res)  # Mostrar el DataFrame completo
+            persona = res.iloc[0]
             example_contract(
-                date=persona_dict['fecha_ingreso'],
-                rol=persona_dict['Rol'],
-                address=persona_dict['residencia'],
-                rut=persona_dict['rut'],
-                full_name=persona_dict['nombre_completo'],
-                nationality=persona_dict['nacionalidad'],
-                birth_date=persona_dict['fecha_de_nacimiento'],
-                profession=persona_dict['profesion'],
-                salary=str(persona_dict['Sueldo'])
+                date=persona['fecha_ingreso'],
+                rol=persona['Rol'],
+                address=persona['residencia'],
+                rut=persona['rut'],
+                full_name=persona['nombre_completo'],
+                nationality=persona['nacionalidad'],
+                birth_date=persona['fecha_de_nacimiento'],
+                profession=persona['profesion'],
+                salary=str(persona['Sueldo'])
             )
-        except KeyError as e:
-            print(f"Error: Falta la columna '{e.args[0]}' en el DataFrame.")
-            return
+        print("Contratos generados exitosamente.")
 
-df = None
-# ... (otras funciones)
+def busqueda_grupo(conn):
+    """
+    Función de búsqueda grupal mejorada con un menú más claro, validación de entrada
+    y generación dinámica de consultas.
+    """
+    while True:
+        print("\nBuscar por:")
+        print("1. Sueldo")
+        print("2. Rol")
+        print("3. Nacionalidad")
+        print("4. Profesión")
+
+        try:
+            opcion = int(input("Ingrese el número de su elección: "))
+            if opcion not in range(1, 5):
+                raise ValueError
+        except ValueError:
+            print("Opción inválida. Ingrese un número del 1 al 4.")
+            continue
+
+        termino_busqueda = input("Ingrese el término de búsqueda: ")
+
+        # Lógica actualizada para manejar la columna "nacionalidad" correctamente
+        if opcion == 3:  # Filtrar por "Nacionalidad"
+            columna = "personas.nacionalidad"  # Usar el nombre correcto de la tabla
+        else:
+            column_options = ["Sueldo", "Rol", "profesion"]  # Opciones sin "Nacionalidad"
+            columna = f"Salarios.{column_options[opcion - 1]}" 
+
+        consulta = f"""
+            SELECT * 
+            FROM personas 
+            INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios 
+            WHERE {columna} = ?
+        """
+        res = pd.read_sql_query(consulta, conn, params=(termino_busqueda,))
+
+        if res.empty:
+            print("No se encontraron personas.")
+        else:
+            for _, persona in res.iterrows(): 
+                example_contract(
+                    date=persona['fecha_ingreso'],
+                    rol=persona['Rol'],
+                    address=persona['residencia'],
+                    rut=persona['rut'],
+                    full_name=persona['nombre_completo'],
+                    nationality=persona['nacionalidad'],
+                    birth_date=persona['fecha_de_nacimiento'],
+                    profession=persona['profesion'],
+                    salary=str(persona['Sueldo'])  # Convertir a string si es necesario
+            )
+        print("Contratos generados exitosamente.")
+
+
 
 def menu():
-    global df
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    subdir_path = os.path.join(base_dir, 'Evaluación 2')
+    """Función del menú principal con manejo de entrada mejorado."""
+    with sqlite3.connect('Sql_data/db_personas.db') as conn:  # Usar administrador de contexto
+        while True:
+            print("\nMenú:")
+            print("1. Búsqueda individual")
+            print("2. Búsqueda por grupo")
+            print("3. Salir")
 
-    db_path = os.path.join(subdir_path, 'Sql_data', 'db_personas.db')
-    template_path = os.path.join(subdir_path, 'plantilla_word', 'template.docx')
-    output_path = os.path.join(subdir_path, 'contrato_ejemplo')
-    images_path = os.path.join(subdir_path, 'imagenes')
-
-    os.makedirs(output_path, exist_ok=True)
-
-    try:
-        conn = connect_db(db_path)
-        query = "SELECT personas.*, Salarios.Rol, Salarios.Sueldo FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios"
-        df = pd.read_sql_query(query, conn)  
-    except (FileNotFoundError, sqlite3.Error) as e:  # Atrapar errores de conexión y consulta
-        print(f"Error al cargar datos de la base de datos: {e}")
-        return  # Salir del menú si hay un error
-
-    while True:
-        print('¿Qué tipo de búsqueda desea realizar?: ')
-        print('1. Búsqueda singular (1 persona)')
-        print('2. Búsqueda múltiple (rango de personas)')
-        try:
-            filtro = int(input('Ingrese el número de su elección: '))
-        except ValueError:
-            print("Debe ingresar un número.")
-            continue
-
-        if filtro == 1:
-            busqueda_persona(conn, template_path, output_path, images_path)
-            break
-        
-        elif filtro == 2:
             try:
-                start = int(input("Ingrese el índice de inicio: "))
-                end = int(input("Ingrese el índice de fin: "))
-                if df is not None:  # Verificar si df tiene datos
-                    multiple_data_to_contract(df, start, end)
+                opcion = int(input("Ingrese su elección: "))
+                if opcion == 1:
+                    busqueda_persona(conn)
+                elif opcion == 2:
+                    busqueda_grupo(conn)
+                elif opcion == 3:
+                    break
                 else:
-                    print("No se pudieron cargar datos de la base de datos.")
-                break
+                    raise ValueError
             except ValueError:
-                print("Debe ingresar números válidos para los índices de generacion 7w7.")
-        else:
-            print('Opción no válida, vuelva a intentar.')
+                print("Opción inválida. Ingrese 1, 2 o 3.")
 
-    conn.close()
-
-# Ejecutar menú principal
-menu()
+if __name__ == "__main__":
+    menu()
