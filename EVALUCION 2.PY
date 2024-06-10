@@ -149,27 +149,65 @@ def busqueda_persona(conn, template_path, output_path, images_path):
             break
         else:
             print('Opción no válida, vuelva a intentar.')
+def multiple_data_to_contract(df: pd.DataFrame, start: int, end: int):
+    """
+    Genera contratos Word para un rango de personas en un DataFrame.
+
+    Args:
+        df (pd.DataFrame): DataFrame con los datos de las personas.
+        start (int): Índice de inicio del rango (inclusivo).
+        end (int): Índice de fin del rango (exclusivo).
+    """
+    sub_df = df.iloc[start:end]  # Filtrar el DataFrame por el rango
+
+    for index, persona in sub_df.iterrows():
+        # Convertir la fila a un diccionario para pasar a example_contract
+        persona_dict = persona.to_dict()
+        # Asegurar que los valores necesarios estén presentes y sean del tipo correcto
+        try:
+            # Llamar a la función example_contract para generar cada contrato
+            example_contract(
+                date=persona_dict['fecha_ingreso'],
+                rol=persona_dict['Rol'],
+                address=persona_dict['residencia'],
+                rut=persona_dict['rut'],
+                full_name=persona_dict['nombre_completo'],
+                nationality=persona_dict['nacionalidad'],
+                birth_date=persona_dict['fecha_de_nacimiento'],
+                profession=persona_dict['profesion'],
+                salary=str(persona_dict['Sueldo'])
+            )
+        except KeyError as e:
+            print(f"Error: Falta la columna '{e.args[0]}' en el DataFrame.")
+            return
+
+df = None
+# ... (otras funciones)
 
 def menu():
-    base_dir = os.path.dirname(os.path.abspath(__file__))  # Obtiene el directorio actual del script
+    global df
+    base_dir = os.path.dirname(os.path.abspath(__file__))
     subdir_path = os.path.join(base_dir, 'Evaluación 2')
-    
+
     db_path = os.path.join(subdir_path, 'Sql_data', 'db_personas.db')
-    template_path = os.path.join(subdir_path, 'plantilla_word', 'template.docx')  
-    output_path = os.path.join(subdir_path, 'contrato_ejemplo') 
-    images_path = os.path.join(subdir_path, 'imagenes')  
-    
+    template_path = os.path.join(subdir_path, 'plantilla_word', 'template.docx')
+    output_path = os.path.join(subdir_path, 'contrato_ejemplo')
+    images_path = os.path.join(subdir_path, 'imagenes')
+
     os.makedirs(output_path, exist_ok=True)
-    
+
     try:
         conn = connect_db(db_path)
-    except FileNotFoundError as e:
-        print(e)
-        return
-    
+        query = "SELECT personas.*, Salarios.Rol, Salarios.Sueldo FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios"
+        df = pd.read_sql_query(query, conn)  
+    except (FileNotFoundError, sqlite3.Error) as e:  # Atrapar errores de conexión y consulta
+        print(f"Error al cargar datos de la base de datos: {e}")
+        return  # Salir del menú si hay un error
+
     while True:
         print('¿Qué tipo de búsqueda desea realizar?: ')
         print('1. Búsqueda singular (1 persona)')
+        print('2. Búsqueda múltiple (rango de personas)')
         try:
             filtro = int(input('Ingrese el número de su elección: '))
         except ValueError:
@@ -179,9 +217,21 @@ def menu():
         if filtro == 1:
             busqueda_persona(conn, template_path, output_path, images_path)
             break
+        
+        elif filtro == 2:
+            try:
+                start = int(input("Ingrese el índice de inicio: "))
+                end = int(input("Ingrese el índice de fin: "))
+                if df is not None:  # Verificar si df tiene datos
+                    multiple_data_to_contract(df, start, end)
+                else:
+                    print("No se pudieron cargar datos de la base de datos.")
+                break
+            except ValueError:
+                print("Debe ingresar números válidos para los índices de generacion 7w7.")
         else:
             print('Opción no válida, vuelva a intentar.')
-    
+
     conn.close()
 
 # Ejecutar menú principal
