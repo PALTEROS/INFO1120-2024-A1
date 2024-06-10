@@ -5,6 +5,8 @@ import pandas as pd
 import os
 import sqlite3
 
+def example_contract(date: str, rol: str, address: str, rut: str, full_name: str, nationality: str, birth_date: str, profession: str, salary: str, output_path: str):
+    document = Document()
 def connect_db(db_path):
     """
     Establece una conexión con la base de datos y la devuelve.
@@ -133,13 +135,28 @@ def busqueda_persona(conn, template_path, output_path, images_path):
         else:
             print('Opción no válida, vuelva a intentar.')
 
+def generar_contratos_rango(conn, start, end, output_path, template_path, images_path):
+    df = pd.read_sql_query("SELECT personas.*, Salarios.Rol, Salarios.Sueldo FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios", conn)
+    print("Columnas disponibles en el DataFrame:", df.columns)
+    sub_df = df.iloc[start:end]
+    for index, row in sub_df.iterrows():
+        example_contract(date=row['fecha_ingreso'],
+                         rol=row['Rol'],
+                         address=row['residencia'],
+                         rut=row['rut'],
+                         full_name=row['nombre_completo'],
+                         nationality=row['nacionalidad'],
+                         birth_date=row['fecha_de_nacimiento'],
+                         profession=row['profesion'],
+                         salary=str(row['Sueldo']))
+
 def menu():
     base_dir = os.path.dirname(os.path.abspath(__file__))  # Obtiene el directorio actual del script
     subdir_path = os.path.join(base_dir, 'Evaluación 2')
     
     db_path = os.path.join(subdir_path, 'Sql_data', 'db_personas.db')
     template_path = os.path.join(subdir_path, 'plantilla_word', 'template.docx')  # Ajustar según el nombre del archivo
-    output_path = os.path.join(subdir_path, 'contrato_ejemplo')  # Directorio donde se guardarán los contratos generados
+    output_path = os.path.join(subdir_path, 'contratos')  # Directorio donde se guardarán los contratos generados
     images_path = os.path.join(subdir_path, 'imagenes')  # Directorio donde están las imágenes
     
     os.makedirs(output_path, exist_ok=True)
@@ -153,6 +170,7 @@ def menu():
     while True:
         print('¿Qué tipo de búsqueda desea realizar?: ')
         print('1. Búsqueda singular (1 persona)')
+        print('2. Generar contratos para un rango de personas')
         try:
             filtro = int(input('Ingrese el número de su elección: '))
         except ValueError:
@@ -161,6 +179,11 @@ def menu():
 
         if filtro == 1:
             busqueda_persona(conn, template_path, output_path, images_path)
+            break
+        elif filtro == 2:
+            start = int(input('Ingrese el índice de inicio: '))
+            end = int(input('Ingrese el índice de fin: '))
+            generar_contratos_rango(conn, start, end, output_path, template_path, images_path)
             break
         else:
             print('Opción no válida, vuelva a intentar.')
