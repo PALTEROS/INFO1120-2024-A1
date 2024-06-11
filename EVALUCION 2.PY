@@ -107,5 +107,5 @@ while True:
     repito = input('Desea realizar otra consulta Si/No: ').strip().lower()
 
     if repito != "si":
-        print('Nos vemo')
+        print('Nos vemos')
         break
