@@ -5,6 +5,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import sqlite3
+conn = sqlite3.connect('Sql_data/db_personas.db')
+cursor= conn.cursor()
 
 grafico_a ="""
 SELECT personas.profesion as profesion,AVG(Salarios.Sueldo) as sueldo_promedio
