@@ -90,7 +90,7 @@ def menu():
                 filtro = int(input('Ingresa el numero de tu eleccion: '))
 
                 if filtro == 1:
-                    BusquedaSing(conn)
+                    BusquedaSing()
                     break
                 elif filtro == 2:
                     BusquedaGrup()
