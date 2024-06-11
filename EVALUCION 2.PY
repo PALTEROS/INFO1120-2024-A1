@@ -3,11 +3,10 @@ from docx import Document
 from docx.shared import Pt, Cm, Mm
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
 import sqlite3
+
 conn = sqlite3.connect('Sql_data/db_personas.db')
 cursor= conn.cursor()
-
 grafico_a ="""
 SELECT personas.profesion as profesion,AVG(Salarios.Sueldo) as sueldo_promedio
 from personas
@@ -27,6 +26,7 @@ SELECT personas.nacionalidad as nacionalidad,count(personas.rut) as numero_de_pr
 from personas
 GROUP BY nacionalidad
 ORDER BY numero_de_profesionales DESC
+
 """
 def grafico_a():
     plt.subplots()
@@ -36,6 +36,7 @@ def grafico_a():
     plt.xticks(rotation=45)
     plt.subplots_adjust(bottom=0.35)
     plt.grid(True,linestyle=":")
+
 def grafico_b():
     plt.subplots()
     data_b = pd.read_sql(grafico_b, conn)
@@ -67,7 +68,6 @@ def gen_cons():
 
 def example_contract(date: str, rol: str, address: str, rut: str, full_name: str, nationality: str, birth_date: str, profession: str, salary: str) -> str:
     document = Document()
-
 
     # Configuración de parámetros del documento
     font = document.styles['Normal'].font
@@ -144,6 +144,44 @@ def example_contract(date: str, rol: str, address: str, rut: str, full_name: str
     # Guardar el documento
     document.save(f'{full_name}.docx')
 
+#def generar_contrato(df):
+#    for _, row in df.iterrows():
+#        date = "fecha de genracion del contrato"
+#        rol = row["Rol"]
+#        address = row["Direccion"]
+#        rut = row["rut"]
+#        full_name = row["nombre_completo"]
+#        nationality = row["Nacionalidad"]
+#        birth_date = row["Fecha_nacimiento"]
+#        profession = row["profesion"]
+#        salary = str(row["Sueldo"])
+#
+#        example_contract(date, rol, address, rut, full_name, nationality, birth_date, profession, salary)        
+
+
+def MostrarGraf():
+    while True:
+        print("1.sueldo promedio por profesion" "\n" "2.distribuicion de profesiones" "\n" "3.conteo de profesionales por nacionalidad" "\n" "4.todos")
+        print("que grafico desea ver")
+        try:
+            r=int(input("Por favor ingrese el numero de su seleccion: "))
+            if r == 1:
+                grafico_a()
+                break
+            elif r == 2 :
+                grafico_b()
+                break
+            elif r == 3 :
+                grafico_c()
+                break
+            elif r == 4 :
+                grafico_a()
+                grafico_b()
+                grafico_c()
+                break
+        except ValueError:
+            print('Ingrese un numero valido')
+
 def BusquedaSing():
     conn = conecBD()
     while True:
@@ -155,15 +193,21 @@ def BusquedaSing():
 
             if eleccion == 1:
                 rut = str(input('Ingrese el rut de la persona: '))
-                query = f"SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.rut = ?"
+                query = "SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.rut = ?"
                 res = pd.read_sql_query(query, conn,params=(rut,))
-                print(res)
+                if res.empty:
+                    print('El rut ingresado no se encuetra en la base de datos SORRY :(')
+                else:
+                    print(res)
                 break
             elif eleccion == 2:
                 nombre = input('Ingrese el Nombre completo de la persona: ').strip().lower()
-                query = f"SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.nombre_completo = ?"
+                query = "SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.nombre_completo = ?"
                 res = pd.read_sql_query(query, conn,params=(nombre,))
-                print(res)
+                if res.empty:
+                    print('El Nombre ingresado no se encuetra en la base de datos')
+                else:
+                    print(res)
                 break
         except ValueError:
             print('Ingrese un numero valido')
@@ -179,27 +223,39 @@ def BusquedaGrup():
 
             if eleccion == 1:
                 sueldo = int(input('Ingrese el sueldo de la persona: '))
-                query = f'SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE Salarios.Sueldo = ?'
+                query = "SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE Salarios.Sueldo = ?"
                 res = pd.read_sql_query(query, conn,params=(sueldo,))
-                print(res)
+                if res.empty:
+                    print('Sueldo no encontrado en la base de datos')
+                else:
+                    print(res)
                 break
             elif eleccion == 2:
                 rol = input('Ingresa el rol de la persona: ').strip().capitalize()
-                query =f'SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE Salarios.Rol = ?'
+                query = "SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE Salarios.Rol = ?"
                 res = pd.read_sql_query(query,conn,params=(rol,))
-                print(res)
+                if res.empty:
+                    print('Rol no encontrado dentro de la base de datos')
+                else:
+                    print(res)
                 break
             elif eleccion == 3:
                 nacionalidad = input('Ingrese la nacionalidad de la persona: ').strip().capitalize()
-                query = f"SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.Nacionalidad = ?"
+                query = "SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.Nacionalidad = ?"
                 res = pd.read_sql_query(query,conn, params=(nacionalidad,))
-                print(res)
+                if res.empty:
+                    print('Nacionalidad no encontrada/s')
+                else: 
+                    print(res)
                 break
             elif eleccion == 4:
                 profesion = input('Ingresa la profesion de la persona: ').strip().lower()
-                query = f'SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.profesion = ?'
+                query = "SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.profesion = ?"
                 res = pd.read_sql_query(query,conn,params=(profesion,))
-                print(res)
+                if res.empty:
+                    print('Profesion no encontrada en la base de datos')
+                else:    
+                    print(res)
                 break
             else:
                 print('Opcion no valida vuelva a intentar ')
@@ -212,8 +268,7 @@ def menu():
     try:
         while True:
             print('Que tipo de busqueda desea ralizar: ')
-            print('1. Busqueda singular (1 persona)')
-            print('2. Busqueda por grupo (Varias personas)')
+            print('1. Busqueda singular (1 persona)' "\n" '2. Busqueda por grupo (Varias personas)' "\n" "3. Mostrar graficos")
             try:
                 filtro = int(input('Ingresa el numero de tu eleccion: '))
 
@@ -223,6 +278,9 @@ def menu():
                 elif filtro == 2:
                     BusquedaGrup()
                     break
+                elif filtro == 3:
+                    MostrarGraf()
+                
                 else:
                  print('opcion no valida vuelva a intentar')
             except ValueError:
@@ -241,3 +299,5 @@ while True:
 plt.show()
 
 conn.close()
+
+date="Fecha del contrato"
