@@ -2,6 +2,8 @@ import os
 from docx import Document
 from docx.shared import Pt, Cm, Mm
 import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
 import sqlite3
 
 def conecBD():
@@ -20,6 +22,8 @@ def gen_cons():
 
 def example_contract(date: str, rol: str, address: str, rut: str, full_name: str, nationality: str, birth_date: str, profession: str, salary: str) -> str:
     document = Document()
+DataFrame= pd.read_sql_query(cosulta,conn)
+print(DataFrame)
 
     # Configuración de parámetros del documento
     font = document.styles['Normal'].font
@@ -34,6 +38,26 @@ def example_contract(date: str, rol: str, address: str, rut: str, full_name: str
         section.right_margin = Cm(1.27)
         section.header_distance = Mm(12.7)
         section.footer_distance = Mm(12.7)
+grafico_a ="""
+SELECT personas.profesion as profesion,AVG(Salarios.Sueldo) as sueldo_promedio
+from personas
+INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios
+GROUP BY profesion
+"""
+grafico_b="""
+SELECT personas.profesion as profesion,
+round(COUNT(rut) * 100 / (SELECT COUNT(profesion) FROM personas)) AS porcentaje
+from personas
+GROUP BY profesion
+ORDER BY porcentaje
+"""
+  
+grafico_c="""
+SELECT personas.nacionalidad as nacionalidad,count(personas.rut) as numero_de_profesionales
+from personas
+GROUP BY nacionalidad
+ORDER BY numero_de_profesionales DESC
+"""
 
     # Encabezado del documento (imagen header.png)
     header = document.sections[0].header
@@ -190,3 +214,29 @@ while True:
     if repito != "si":
         print('Nos vemos')
         break
+
+
+plt.subplots()
+data_a = pd.read_sql(grafico_a, conn)
+plt.bar(data_a.profesion,data_a.sueldo_promedio, color = "skyblue")
+plt.title("sueldo promedio por profesion")
+plt.xticks(rotation=45)
+plt.subplots_adjust(bottom=0.35)
+plt.grid(True,linestyle=":")
+
+plt.subplots()
+data_b = pd.read_sql(grafico_b, conn)
+plt.pie(data_b.porcentaje,labels=data_b.profesion, autopct='%1.1f%%')
+plt.title("distribuicion de profesiones")
+
+
+plt.subplots()
+data_c = pd.read_sql(grafico_c, conn)
+plt.bar(data_c.nacionalidad, data_c.numero_de_profesionales, color="skyblue")
+plt.title("conteo de profesionales por nacionalidad")
+plt.xticks(rotation=45)
+plt.grid(True,linestyle=":")
+
+plt.show()
+
+conn.close()
