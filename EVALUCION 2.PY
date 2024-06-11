@@ -48,6 +48,7 @@ def grafico_c():
     plt.title("conteo de profesionales por nacionalidad")
     plt.xticks(rotation=45)
     plt.grid(True,linestyle=":")
+
 def conecBD():
     return sqlite3.connect('Sql_data/db_personas.db')
 
