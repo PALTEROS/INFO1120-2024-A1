@@ -8,6 +8,21 @@ import sqlite3
 conn = sqlite3.connect('Sql_data/db_personas.db')
 cursor = conn.cursor()
 
+consulta = """
+    SELECT * 
+    from personas
+    INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios
+    """
+
+cursor.execute(consulta)
+rows = cursor.fetchall()
+
+for row in rows:
+    print(row)
+
+DataFrame= pd.read_sql_query(consulta,conn)
+print(DataFrame)
+
 grafico_a ="""
 SELECT personas.profesion as profesion,AVG(Salarios.Sueldo) as sueldo_promedio
 from personas
@@ -148,41 +163,40 @@ def example_contract(date: str, rol: str, address: str, rut: str, full_name: str
 
 def generar_contrato(df):
     for _, row in df.iterrows():
-        date = "fecha de genracion del contrato"
+        # Extraer datos del DataFrame
         rol = row["Rol"]
-        address = row["Direccion"]
+        address = row["residencia"]
         rut = row["rut"]
         full_name = row["nombre_completo"]
-        nationality = row["Nacionalidad"]
-        birth_date = row["Fecha_nacimiento"]
+        nationality = row["nacionalidad"]
+        birth_date = row["fecha_ingreso"]
         profession = row["profesion"]
         salary = str(row["Sueldo"])
+        date = "11 de Junio del 2024"  # Reemplaza con la fecha real si es diferente
 
-        example_contract(date, rol, address, rut, full_name, nationality, birth_date, profession, salary)        
+        example_contract(date, rol, address, rut, full_name, nationality, birth_date, profession, salary)
+
+
 
 
 def MostrarGraf():
-    while True:
         print("1.sueldo promedio por profesion" "\n" "2.distribuicion de profesiones" "\n" "3.conteo de profesionales por nacionalidad" "\n" "4.todos")
         print("que grafico desea ver")
-        try:
-            r=int(input("Por favor ingrese el numero de su seleccion: "))
-            if r == 1:
-                graficoa()
-                break
-            elif r == 2 :
-                graficob()
-                break
-            elif r == 3 :
-                graficoc()
-                break
-            elif r == 4 :
-                graficoa()
-                graficob()
-                graficoc()
-                break
-        except ValueError:
-            print('Ingrese un numero valido')
+        r=int(input("Por favor ingrese el numero de su seleccion: "))
+        if r == 1:
+            graficoa()
+            plt.show()
+        elif r == 2 :
+            raficob()
+            plt.show()
+        elif r == 3 :
+            graficoc()
+            plt.show()
+        elif r == 4 :
+            graficoa()
+            graficob()
+            graficoc()
+            plt.show()
 
 def BusquedaSing():
     conn = conecBD()
@@ -199,8 +213,6 @@ def BusquedaSing():
                 res = pd.read_sql_query(query, conn,params=(rut,))
                 if res.empty:
                     print('El rut ingresado no se encuetra en la base de datos SORRY :(')
-                else:
-                    print(res)
                 if not res.empty:
                     print(res)
                     generar_contrato_opcion = input("¿Desea generar un contrato para esta persona? (Si/No): ").strip().lower()  # Cambiamos el nombre de la variable
@@ -208,13 +220,12 @@ def BusquedaSing():
                         generar_contrato(res)
                 break
             elif eleccion == 2:
-                nombre = input('Ingrese el Nombre completo de la persona: ').strip().lower()
-                query = "SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.nombre_completo = ?"
+                nombre = str(input('Ingrese el Nombre completo de la persona: ')).strip().lower()
+                query = "SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE LOWER(personas.nombre_completo) = ?"
+                cursor.execute(query, (nombre,))
                 res = pd.read_sql_query(query, conn,params=(nombre,))
                 if res.empty:
                     print('El Nombre ingresado no se encuetra en la base de datos')
-                else:
-                    print(res)
                 if not res.empty:
                     print(res)
                     generar_contrato_opcion = input("¿Desea generar un contrato para esta persona? (Si/No): ").strip().lower()  # Cambiamos el nombre de la variable
@@ -267,8 +278,7 @@ def BusquedaGrup():
                 res = pd.read_sql_query(query,conn, params=(nacionalidad,))
                 if res.empty:
                     print('Nacionalidad no encontrada/s')
-                else: 
-                    print(res)
+            
                 if not res.empty:
                     print(res)
                     generar_contrato_opcion = input("¿Desea generar contratos para estas personas? (Si/No): ").strip().lower()  # Cambiamos el nombre de la variable
@@ -277,7 +287,7 @@ def BusquedaGrup():
                 break
             elif eleccion == 4:
                 profesion = input('Ingresa la profesion de la persona: ').strip().lower()
-                query = "SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE personas.profesion = ?"
+                query = "SELECT * FROM personas INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios WHERE LOWER(personas.profesion) = ?"
                 res = pd.read_sql_query(query,conn,params=(profesion,))
                 if res.empty:
                     print('Profesion no encontrada en la base de datos')
@@ -330,3 +340,9 @@ while True:
 
 plt.show()
 conn.close()
+
+
+
+
+
+
