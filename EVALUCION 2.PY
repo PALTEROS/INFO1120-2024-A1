@@ -60,7 +60,7 @@ def graficoa():
 def graficob():
     plt.subplots()
     data_b = pd.read_sql(grafico_b, conn)
-    plt.pie(data_b.porcentaje,labels=data_b.profesion, autopct='%1.1f%%')
+    plt.pie(data_b.porcentaje,labels=data_b.profesion, autopct='%1.7f%%')
     plt.title("distribuicion de profesiones")
 
 
@@ -189,7 +189,7 @@ def MostrarGraf():
             graficoa()
             plt.show()
         elif r == 2 :
-            raficob()
+            graficob()
             plt.show()
         elif r == 3 :
             graficoc()
