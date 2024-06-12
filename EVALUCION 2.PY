@@ -6,13 +6,15 @@ import matplotlib.pyplot as plt
 import sqlite3
 
 conn = sqlite3.connect('Sql_data/db_personas.db')
-cursor= conn.cursor()
+cursor = conn.cursor()
+
 grafico_a ="""
 SELECT personas.profesion as profesion,AVG(Salarios.Sueldo) as sueldo_promedio
 from personas
 INNER JOIN Salarios ON personas.id_rol = Salarios.id_salarios
 GROUP BY profesion
 """
+
 grafico_b="""
 SELECT personas.profesion as profesion,
 round(COUNT(rut) * 100 / (SELECT COUNT(profesion) FROM personas)) AS porcentaje
@@ -28,7 +30,8 @@ GROUP BY nacionalidad
 ORDER BY numero_de_profesionales DESC
 
 """
-def grafico_a():
+
+def graficoa():
     plt.subplots()
     data_a = pd.read_sql(grafico_a, conn)
     plt.bar(data_a.profesion,data_a.sueldo_promedio, color = "skyblue")
@@ -37,14 +40,14 @@ def grafico_a():
     plt.subplots_adjust(bottom=0.35)
     plt.grid(True,linestyle=":")
 
-def grafico_b():
+def graficob():
     plt.subplots()
     data_b = pd.read_sql(grafico_b, conn)
     plt.pie(data_b.porcentaje,labels=data_b.profesion, autopct='%1.1f%%')
     plt.title("distribuicion de profesiones")
 
 
-def grafico_c():
+def graficoc():
     plt.subplots()
     data_c = pd.read_sql(grafico_c, conn)
     plt.bar(data_c.nacionalidad, data_c.numero_de_profesionales, color="skyblue")
@@ -68,7 +71,6 @@ def gen_cons():
 
 def example_contract(date: str, rol: str, address: str, rut: str, full_name: str, nationality: str, birth_date: str, profession: str, salary: str) -> str:
     document = Document()
-
     # Configuración de parámetros del documento
     font = document.styles['Normal'].font
     font.name = 'Book Antiqua'
@@ -144,19 +146,19 @@ def example_contract(date: str, rol: str, address: str, rut: str, full_name: str
     # Guardar el documento
     document.save(f'{full_name}.docx')
 
-#def generar_contrato(df):
-#    for _, row in df.iterrows():
-#        date = "fecha de genracion del contrato"
-#        rol = row["Rol"]
-#        address = row["Direccion"]
-#        rut = row["rut"]
-#        full_name = row["nombre_completo"]
-#        nationality = row["Nacionalidad"]
-#        birth_date = row["Fecha_nacimiento"]
-#        profession = row["profesion"]
-#        salary = str(row["Sueldo"])
-#
-#        example_contract(date, rol, address, rut, full_name, nationality, birth_date, profession, salary)        
+def generar_contrato(df):
+    for _, row in df.iterrows():
+        date = "fecha de genracion del contrato"
+        rol = row["Rol"]
+        address = row["Direccion"]
+        rut = row["rut"]
+        full_name = row["nombre_completo"]
+        nationality = row["Nacionalidad"]
+        birth_date = row["Fecha_nacimiento"]
+        profession = row["profesion"]
+        salary = str(row["Sueldo"])
+
+        example_contract(date, rol, address, rut, full_name, nationality, birth_date, profession, salary)        
 
 
 def MostrarGraf():
@@ -166,18 +168,18 @@ def MostrarGraf():
         try:
             r=int(input("Por favor ingrese el numero de su seleccion: "))
             if r == 1:
-                grafico_a()
+                graficoa()
                 break
             elif r == 2 :
-                grafico_b()
+                graficob()
                 break
             elif r == 3 :
-                grafico_c()
+                graficoc()
                 break
             elif r == 4 :
-                grafico_a()
-                grafico_b()
-                grafico_c()
+                graficoa()
+                graficob()
+                graficoc()
                 break
         except ValueError:
             print('Ingrese un numero valido')
@@ -199,6 +201,11 @@ def BusquedaSing():
                     print('El rut ingresado no se encuetra en la base de datos SORRY :(')
                 else:
                     print(res)
+                if not res.empty:
+                    print(res)
+                    generar_contrato_opcion = input("¿Desea generar un contrato para esta persona? (Si/No): ").strip().lower()  # Cambiamos el nombre de la variable
+                    if generar_contrato_opcion == "si":
+                        generar_contrato(res)
                 break
             elif eleccion == 2:
                 nombre = input('Ingrese el Nombre completo de la persona: ').strip().lower()
@@ -208,6 +215,11 @@ def BusquedaSing():
                     print('El Nombre ingresado no se encuetra en la base de datos')
                 else:
                     print(res)
+                if not res.empty:
+                    print(res)
+                    generar_contrato_opcion = input("¿Desea generar un contrato para esta persona? (Si/No): ").strip().lower()  # Cambiamos el nombre de la variable
+                    if generar_contrato_opcion == "si":
+                        generar_contrato(res)
                 break
         except ValueError:
             print('Ingrese un numero valido')
@@ -229,6 +241,11 @@ def BusquedaGrup():
                     print('Sueldo no encontrado en la base de datos')
                 else:
                     print(res)
+                if not res.empty:
+                    print(res)
+                    generar_contrato_opcion = input("¿Desea generar contratos para estas personas? (Si/No): ").strip().lower()  # Cambiamos el nombre de la variable
+                    if generar_contrato_opcion == "si":
+                        generar_contrato(res)
                 break
             elif eleccion == 2:
                 rol = input('Ingresa el rol de la persona: ').strip().capitalize()
@@ -238,6 +255,11 @@ def BusquedaGrup():
                     print('Rol no encontrado dentro de la base de datos')
                 else:
                     print(res)
+                if not res.empty:
+                    print(res)
+                    generar_contrato_opcion = input("¿Desea generar contratos para estas personas? (Si/No): ").strip().lower()  # Cambiamos el nombre de la variable
+                    if generar_contrato_opcion == "si":
+                        generar_contrato(res)
                 break
             elif eleccion == 3:
                 nacionalidad = input('Ingrese la nacionalidad de la persona: ').strip().capitalize()
@@ -247,6 +269,11 @@ def BusquedaGrup():
                     print('Nacionalidad no encontrada/s')
                 else: 
                     print(res)
+                if not res.empty:
+                    print(res)
+                    generar_contrato_opcion = input("¿Desea generar contratos para estas personas? (Si/No): ").strip().lower()  # Cambiamos el nombre de la variable
+                    if generar_contrato_opcion == "si":
+                        generar_contrato(res)
                 break
             elif eleccion == 4:
                 profesion = input('Ingresa la profesion de la persona: ').strip().lower()
@@ -256,6 +283,11 @@ def BusquedaGrup():
                     print('Profesion no encontrada en la base de datos')
                 else:    
                     print(res)
+                if not res.empty:
+                    print(res)
+                    generar_contrato_opcion = input("¿Desea generar contratos para estas personas? (Si/No): ").strip().lower()  # Cambiamos el nombre de la variable
+                    if generar_contrato_opcion == "si":
+                        generar_contrato(res)
                 break
             else:
                 print('Opcion no valida vuelva a intentar ')
@@ -280,7 +312,7 @@ def menu():
                     break
                 elif filtro == 3:
                     MostrarGraf()
-                
+                    break
                 else:
                  print('opcion no valida vuelva a intentar')
             except ValueError:
@@ -297,7 +329,4 @@ while True:
         break
 
 plt.show()
-
 conn.close()
-
-date="Fecha del contrato"
