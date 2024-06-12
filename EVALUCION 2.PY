@@ -1,3 +1,5 @@
+#integrantes:
+#Tomas Penroz M, Sebastian Quiñenao B, Fabian Sanchez V
 import os
 from docx import Document
 from docx.shared import Pt, Cm, Mm
